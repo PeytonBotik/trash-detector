@@ -11,7 +11,7 @@ import tensorflow as tf
 from threading import Thread
 
 # Load the TensorFlow Lite model
-model_path = "/home/pi/Downloads/tflite_model/model.tflite"  # Adjust the path
+model_path = "waterbottle/waterbottle.tflite"  # Adjust the path
 interpreter = tf.lite.Interpreter(model_path=model_path)
 interpreter.allocate_tensors()
 
