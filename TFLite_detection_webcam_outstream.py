@@ -23,9 +23,14 @@ import time
 from threading import Thread
 import importlib.util
 import gi
+
+# Initialize GStreamer for debugging
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 Gst.init(None)
+
+print("GStreamer and other necessary packages imported successfully.")
+
 
 
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
@@ -34,15 +39,23 @@ class VideoStream:
     """Camera object that controls video streaming from the Picamera"""
     def __init__(self,resolution=(640,480),framerate=30):
         # Initialize the PiCamera and the camera image stream
+        print("Initializing Video Capture")
         self.stream = cv2.VideoCapture(0)
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
         ret = self.stream.set(4,resolution[1])
-            
+        
+        if not ret:
+            print("Failed to set camera properties. Exiting...")
+            sys.exit(1)
+        
         # Read first frame from the stream
         (self.grabbed, self.frame) = self.stream.read()
+        if not self.grabbed:
+            print("Failed to grab initial frame. Exiting...")
+            sys.exit(1)
 
-	# Variable to control when the camera is stopped
+	    # Variable to control when the camera is stopped
         self.stopped = False
 
     def start(self):
@@ -69,6 +82,9 @@ class VideoStream:
     def stop(self):
 	# Indicate that the camera and thread should be stopped
         self.stopped = True
+
+# Main script starts here
+print("Starting script...")
 
 # Define and parse input arguments
 parser = argparse.ArgumentParser()
@@ -171,10 +187,14 @@ freq = cv2.getTickFrequency()
 # Initialize video stream
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
+print("Video stream started.")
 
+# Initialize GStreamer pipeline
+print("Initializing GStreamer pipeline.")
 out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=0.0.0.0 port=6000 sync=false'
 out = Gst.parse_launch(out_pipeline)
 out.set_state(Gst.State.PLAYING)
+print("GStreamer pipeline initialized and playing.")
 
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 while True:
@@ -187,7 +207,8 @@ while True:
     if frame1 is None:
         print("Failed to capture frame from camera. Check camera.")
         continue  # Skip this iteration of the loop
-
+    
+    print(f"Processing new frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Acquire frame and resize to expected shape [1xHxWx3]
     frame = frame1.copy()
@@ -247,6 +268,7 @@ while True:
         appsrc = out.get_by_name('appsrc0')
         appsrc.emit('push-buffer', buffer)
 
+        print(f"Processed frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Calculate framerate
         t2 = cv2.getTickCount()
@@ -255,10 +277,12 @@ while True:
 
         # Press 'q' to quit
         if cv2.waitKey(1) == ord('q'):
+            print("Quit key pressed. Exiting...")
             break
 
 # Clean up
 cv2.destroyAllWindows()
 videostream.stop()
 out.set_state(Gst.State.NULL)
+print("Cleaned up resources. Script terminated.")
 
