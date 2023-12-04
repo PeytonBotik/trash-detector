@@ -172,7 +172,7 @@ freq = cv2.getTickFrequency()
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
 
-out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=640,height=480 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=0.0.0.0 port=5000 sync=false'
+out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=0.0.0.0 port=6000 sync=false'
 out = Gst.parse_launch(out_pipeline)
 out.set_state(Gst.State.PLAYING)
 
@@ -235,12 +235,12 @@ while True:
 
         # Convert frame to GStreamer buffer
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = frame.tostring()
+        frame = frame.tobytes()
         buffer = Gst.Buffer.new_allocate(None, len(frame), None)
         buffer.fill(0, frame)
 
         # Push buffer into pipeline
-        appsrc = out.get_element_by_name('appsrc0')
+        appsrc = out.get_by_name('appsrc0')
         appsrc.emit('push-buffer', buffer)
 
 
