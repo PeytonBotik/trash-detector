@@ -22,6 +22,16 @@ import sys
 import time
 from threading import Thread
 import importlib.util
+import queue
+import gi
+
+# Initialize GStreamer for debugging
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst
+Gst.init(None)
+
+print("GStreamer and other necessary packages imported successfully.")
+
 
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
 # Source - Adrian Rosebrock, PyImageSearch: https://www.pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/
@@ -52,6 +62,7 @@ class VideoStream:
             if self.stopped:
                 # Close camera resources
                 self.stream.release()
+                print("Video stream stopped.")
                 return
 
             # Otherwise, grab the next frame from the stream
@@ -73,7 +84,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
                     required=True)
 parser.add_argument('--streamurl', help='The full URL of the video stream e.g. http://ipaddress:port/stream/video.mjpeg',
-                    required=True)
+                    default='http://192.168.2.2/mavlink-camera-manager/sdp?source=%2Fdev%2Fvideo2')
 parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
                     default='detect.tflite')
 parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
@@ -81,7 +92,7 @@ parser.add_argument('--labels', help='Name of the labelmap file, if different th
 parser.add_argument('--threshold', help='Minimum confidence threshold for displaying detected objects',
                     default=0.5)
 parser.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
-                    default='1280x720')
+                    default='1920x1080')
 parser.add_argument('--edgetpu', help='Use Coral Edge TPU Accelerator to speed up detection',
                     action='store_true')
 
@@ -95,6 +106,40 @@ min_conf_threshold = float(args.threshold)
 resW, resH = args.resolution.split('x')
 imW, imH = int(resW), int(resH)
 use_TPU = args.edgetpu
+
+class StreamOutput:
+    def __init__(self):
+        self.frame_queue = queue.Queue(maxsize=1)
+        self.streaming = True
+        self.thread = Thread(target=self.stream_video)
+        self.thread.start()
+
+    def stream_video(self):
+        # Define your GStreamer pipeline here
+        # For example, an RTP over UDP pipeline
+        out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.1 port=6000'
+        pipeline = Gst.parse_launch(out_pipeline)
+        appsrc = pipeline.get_by_name('appsrc0')
+        pipeline.set_state(Gst.State.PLAYING)
+
+        while self.streaming:
+            if not self.frame_queue.empty():
+                frame = self.frame_queue.get()
+                data = frame.tostring()
+                buf = Gst.Buffer.new_allocate(None, len(data), None)
+                buf.fill(0, data)
+                appsrc.emit('push-buffer', buf)
+
+        pipeline.set_state(Gst.State.NULL)
+
+    def add_frame(self, frame):
+        if self.frame_queue.full():  # Drop the oldest frame
+            self.frame_queue.get_nowait()
+        self.frame_queue.put(frame)
+
+    def stop(self):
+        self.streaming = False
+        self.thread.join()
 
 # Import TensorFlow libraries
 # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
@@ -169,9 +214,14 @@ else: # This is a TF1 model
 frame_rate_calc = 1
 freq = cv2.getTickFrequency()
 
-# Initialize video stream
-videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
+print("Script arguments parsed successfully.")
+
+# Initializing video stream
+print("Initializing video stream...")
+videostream = VideoStream(resolution=(imW, imH), framerate=30).start()
 time.sleep(1)
+stream_output = StreamOutput()  # Initialize stream output
+print("Video stream initialized.")
 
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 while True:
@@ -186,6 +236,8 @@ while True:
     if not videostream.grabbed:
         print("Warning: Frame not grabbed properly. Skipping frame. (videostream.grabbed)")
         continue
+
+    print("Processing new frame.")
 
     # Acquire frame and resize to expected shape [1xHxWx3]
     frame = frame1.copy()
@@ -233,6 +285,9 @@ while True:
     # All the results have been drawn on the frame, so it's time to display it.
     cv2.imshow('Object detector', frame)
 
+    # Add processed frame to the streaming queue
+    stream_output.add_frame(frame)
+
     # Calculate framerate
     t2 = cv2.getTickCount()
     time1 = (t2-t1)/freq
@@ -245,3 +300,5 @@ while True:
 # Clean up
 cv2.destroyAllWindows()
 videostream.stop()
+stream_output.stop()  # Stop the streaming thread
+print("Script ended and resources released.")
