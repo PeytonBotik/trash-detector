@@ -26,13 +26,11 @@ import subprocess
 import queue
 
 class FFmpegStreamOutput:
-    def __init__(self, resolution=(1920, 1080), framerate=30, output_ip='192.168.2.2', output_port=6000):
+    def __init__(self, resolution=(1920, 1080), framerate=30):
         self.frame_queue = queue.Queue(maxsize=1)
         self.streaming = True
         self.resolution = resolution
         self.framerate = framerate
-        self.output_ip = output_ip
-        self.output_port = output_port
         self.thread = Thread(target=self.stream_video)
         self.thread.start()
 
@@ -42,16 +40,16 @@ class FFmpegStreamOutput:
             '-y',
             '-f', 'rawvideo',
             '-vcodec', 'rawvideo',
-            '-s', '{}x{}'.format(*self.resolution),
+            '-s', '{}x{}'.format(*self.resolution),  # Resolution
             '-pix_fmt', 'bgr24',
-            '-r', str(self.framerate),
-            '-i', '-',
-            '-an',
+            '-r', str(self.framerate),  # Framerate
+            '-i', '-',  # Input comes from a pipe
+            '-an',  # No audio
             '-vcodec', 'libx264',
             '-preset', 'veryfast',
             '-tune', 'zerolatency',
-            '-f', 'mpegts',
-            'udp://{}:{}'.format(self.output_ip, self.output_port)
+            '-f', 'flv',  # Output format
+            'rtmp://localhost/live/stream'  # Output destination
         ]
 
         self.process = subprocess.Popen(command, stdin=subprocess.PIPE)
@@ -121,7 +119,7 @@ class VideoStream:
 # Define and parse input arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
-                    required=True)
+                    default='Sample_TFLite_model')
 parser.add_argument('--streamurl', help='The full URL of the video stream e.g. http://ipaddress:port/stream/video.mjpeg',
                     default='http://192.168.2.2/mavlink-camera-manager/sdp?source=%2Fdev%2Fvideo2')
 parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
