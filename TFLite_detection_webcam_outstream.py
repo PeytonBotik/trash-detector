@@ -24,6 +24,17 @@ from threading import Thread
 import importlib.util
 import gi
 
+# Function to capture and save a test image from the webcam
+def capture_test_image(video_stream, test_image_path='test_image.jpg'):
+    if not video_stream.grabbed:
+        print("Failed to grab frame from video stream.")
+        return False
+
+    frame = video_stream.read()
+    cv2.imwrite(test_image_path, frame)
+    print(f"Test image saved to {test_image_path}")
+    return True
+
 # Initialize GStreamer for debugging
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -187,10 +198,16 @@ videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
 print("Video stream started.")
 
+# Capture and save a test image to verify webcam feed
+if not capture_test_image(videostream):
+    print("Error: Unable to capture image from webcam.")
+    # Handle the error as needed (e.g., exit the script)
+else:
+    print("Webcam feed test successful.")
+
 # Initialize GStreamer pipeline
 print("Initializing GStreamer pipeline.")
-
-out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.1 port=6000 sync=false'
+out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.2 port=6000 sync=false'
 out = Gst.parse_launch(out_pipeline)
 out.set_state(Gst.State.PLAYING)
 print("GStreamer pipeline initialized and playing.")
