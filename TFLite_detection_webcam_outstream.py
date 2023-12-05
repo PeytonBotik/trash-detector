@@ -31,8 +31,6 @@ Gst.init(None)
 
 print("GStreamer and other necessary packages imported successfully.")
 
-
-
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
 # Source - Adrian Rosebrock, PyImageSearch: https://www.pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/
 class VideoStream:
@@ -209,7 +207,7 @@ while True:
         print("Failed to capture frame from camera. Check camera.")
         continue  # Skip this iteration of the loop
     
-    print(f"Processing new frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    # print(f"Processing new frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Acquire frame and resize to expected shape [1xHxWx3]
     frame = frame1.copy()
@@ -269,7 +267,7 @@ while True:
         appsrc = out.get_by_name('appsrc0')
         appsrc.emit('push-buffer', buffer)
 
-        print(f"Processed frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        # print(f"Processed frame at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Calculate framerate
         t2 = cv2.getTickCount()
