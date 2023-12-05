@@ -49,7 +49,7 @@ class FFmpegStreamOutput:
             '-preset', 'veryfast',
             '-tune', 'zerolatency',
             '-f', 'flv',  # Output format
-            'rtmp://192.168.2.2/live/stream'  # Output destination
+            'rtmp://localhost/live/stream'  # Output destination
         ]
 
         self.process = subprocess.Popen(command, stdin=subprocess.PIPE)
