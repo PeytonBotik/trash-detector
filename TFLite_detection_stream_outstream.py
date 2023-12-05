@@ -37,7 +37,7 @@ print("GStreamer and other necessary packages imported successfully.")
 # Source - Adrian Rosebrock, PyImageSearch: https://www.pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/
 class VideoStream:
     """Camera object that controls video streaming"""
-    def __init__(self,resolution=(640,480),framerate=30):
+    def __init__(self,resolution=(1920,1080),framerate=30):
         # Initialize the PiCamera and the camera image stream
         self.stream = cv2.VideoCapture(STREAM_URL)
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
