@@ -207,7 +207,15 @@ else:
 
 # Initialize GStreamer pipeline
 print("Initializing GStreamer pipeline.")
-out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.1 port=6000 sync=false'
+out_pipeline = (
+    'appsrc ! '
+    'videoconvert ! '
+    'videoscale ! '
+    'video/x-raw,width=1920,height=1080 ! '
+    'x264enc speed-preset=ultrafast tune=zerolatency ! '
+    'rtph264pay config-interval=1 pt=96 ! '
+    'udpsink host=192.168.2.2 port=6000 sync=false'
+)
 out = Gst.parse_launch(out_pipeline)
 out.set_state(Gst.State.PLAYING)
 print("GStreamer pipeline initialized and playing.")
