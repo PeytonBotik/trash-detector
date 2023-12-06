@@ -26,7 +26,7 @@ import subprocess
 import queue
 
 class FFmpegStreamOutput:
-    def __init__(self, resolution=(1920, 1080), framerate=30, output_ip='192.168.2.2', output_port=6000):
+    def __init__(self, resolution=(1920, 1080), framerate=30, output_ip='192.168.2.1', output_port=2000):
         self.frame_queue = queue.Queue(maxsize=1)
         self.streaming = True
         self.resolution = resolution

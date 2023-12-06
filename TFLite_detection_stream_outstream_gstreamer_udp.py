@@ -117,7 +117,7 @@ class StreamOutput:
     def stream_video(self):
         # Define your GStreamer pipeline here
         # For example, an RTP over UDP pipeline
-        out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.1 port=6000'
+        out_pipeline = 'appsrc ! videoconvert ! videoscale ! video/x-raw,width=1920,height=1080 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.2.1 port=2000'
         pipeline = Gst.parse_launch(out_pipeline)
         appsrc = pipeline.get_by_name('appsrc0')
         pipeline.set_state(Gst.State.PLAYING)
