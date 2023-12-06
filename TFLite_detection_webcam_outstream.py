@@ -99,6 +99,8 @@ print("Starting script...")
 parser = argparse.ArgumentParser()
 parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
                     default='Sample_TFLite_model')
+parser.add_argument('--ip_port', help='The IP and PORT of the outgoing video stream',
+                    default='192.168.2.20:2000')
 parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
                     default='detect.tflite')
 parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
@@ -119,6 +121,7 @@ min_conf_threshold = float(args.threshold)
 resW, resH = args.resolution.split('x')
 imW, imH = int(resW), int(resH)
 use_TPU = args.edgetpu
+ip, port = args.ip_port.split(':')
 
 # Import TensorFlow libraries
 # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
@@ -214,7 +217,7 @@ out_pipeline = (
     'video/x-raw,width=1920,height=1080 ! '
     'x264enc speed-preset=ultrafast tune=zerolatency ! '
     'rtph264pay config-interval=1 pt=96 ! '
-    'udpsink host=192.168.2.2 port=6000 sync=false'
+    'udpsink host={ip} port={port}} sync=false'
 )
 out = Gst.parse_launch(out_pipeline)
 out.set_state(Gst.State.PLAYING)
